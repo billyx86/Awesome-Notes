@@ -1,4 +1,5 @@
 import 'package:awesomenotes/constants/routes.dart';
+import 'package:awesomenotes/utilities/show_error_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -70,12 +71,19 @@ class _RegisterViewState extends State<RegisterView> {
                 devtools.log(userCredential.toString());
               } on FirebaseAuthException catch (e) {
                 if (e.code == 'weak-password') {
-                  devtools.log('Password given does not meet security rules.');
+                  await showErrorDialog(context, 'Your password must be 6 or more characters.');
                 } else if (e.code == 'email-already-in-use') {
-                  devtools.log('Email is already in use');
+                  await showErrorDialog(context, 'Specified email is already in use.');
                 } else if (e.code == 'invalid-email') {
-                  devtools.log("Invalid email entered.");
+                  await showErrorDialog(context, 'Invalid email has been specified.');
+                } else {
+                  await showErrorDialog(
+                    context, 
+                    'Unexpected error: ${e.code}'
+                  );
                 }
+              } catch (e) {
+                await showErrorDialog(context, e.toString());
               }
             }, 
             child: const Text('Register'),

@@ -13,9 +13,9 @@ void main() {
 
   runApp(MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
+      theme: ThemeData(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system,
       home: const HomePage(),
       routes: {
         loginRoute: (context) => const LoginView(),
