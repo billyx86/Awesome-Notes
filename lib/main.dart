@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 
-
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -16,6 +15,10 @@ void main() {
         primarySwatch: Colors.green,
       ),
       home: const HomePage(),
+      routes: {
+        '/login/': (context) => const LoginView(),
+        '/register/': (context) => const RegisterView()
+      },
     )
   );
 }
@@ -25,11 +28,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-      ),
-      body: FutureBuilder(
+    return FutureBuilder(
         future: Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         ),
@@ -46,8 +45,7 @@ class HomePage extends StatelessWidget {
               return const Text('Loading...');
           }
         },
-      ),
-    );
+      );
   }
 }
 
@@ -66,7 +64,6 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
         TextButton(onPressed: () async {
           final user = FirebaseAuth.instance.currentUser;
           await user?.sendEmailVerification();
-          
         }, child: const Text('Send verification email'))  
       ],);
   }
