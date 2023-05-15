@@ -1,5 +1,6 @@
 import 'package:awesomenotes/views/login_view.dart';
 import 'package:awesomenotes/views/register_view.dart';
+import 'package:awesomenotes/views/verify_email_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -49,22 +50,3 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class VerifyEmailView extends StatefulWidget {
-  const VerifyEmailView({super.key});
-
-  @override
-  State<VerifyEmailView> createState() => _VerifyEmailViewState();
-}
-
-class _VerifyEmailViewState extends State<VerifyEmailView> {
-  @override
-  Widget build(BuildContext context) {
-    return Column( children: [
-        const Text('Please verify your email address: '),
-        TextButton(onPressed: () async {
-          final user = FirebaseAuth.instance.currentUser;
-          await user?.sendEmailVerification();
-        }, child: const Text('Send verification email'))  
-      ],);
-  }
-}
