@@ -80,8 +80,14 @@ class _NotesViewState extends State<NotesView> {
                   if (shouldLogout) {
                     await FirebaseAuth.instance.signOut();
                     if (!mounted) return;
+                    // The user is signed out; send them straight to login,
+                    // discarding the whole stack so the back button can't
+                    // re-enter the app.
+                    //
+                    // Uses the loginRoute constant instead of the literal
+                    // '/login/' so the string lives in one place.
                     Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login/', 
+                      loginRoute,
                       (_) => false,
                     );
                   }
