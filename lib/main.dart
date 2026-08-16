@@ -8,8 +8,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase exactly once, before the app is built. Doing this
+  // in HomePage.build() (the previous behavior) re-ran on every rebuild of
+  // the FutureBuilder and threw once Firebase had already been initialized.
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(MaterialApp(
       title: 'Flutter Demo',
@@ -31,28 +38,19 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ),
-      builder: (context, snapshot) {
-        switch (snapshot.connectionState) {
-          case ConnectionState.done:
-            final user = FirebaseAuth.instance.currentUser;
-            if (user != null) {
-              if (user.emailVerified) {
-                return const NotesView();
-              } else {
-                return const VerifyEmailView();
-              }
-            } else {
-              return const LoginView();
-            }
-          default:
-            return const Text('Loading...');
-        }
-      },
-    );
+    // Firebase is initialized in main() before runApp(), so we can read the
+    // persisted auth state synchronously — no more FutureBuilder wrapping
+    // the app entry point (and no more re-initialization on rebuild).
+    //
+    // The auth views handle their own navigation on sign-in / sign-out, so
+    // this deliberately reads the state once per build rather than
+    // subscribing to authStateChanges (a stream here would double-navigate
+    // with the views).
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const LoginView();
+    }
+    return user.emailVerified ? const NotesView() : const VerifyEmailView();
   }
 }
 
