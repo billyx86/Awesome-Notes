@@ -28,6 +28,10 @@ Future<void> main() async {
         loginRoute: (context) => const LoginView(),
         registerRoute: (context) => const RegisterView(),
         notesRoute: (context) => const NotesView(),
+        // VerifyEmailView was reachable only via HomePage; the register
+        // flow had no named route to send a freshly-created (unverified)
+        // user to, so they were left stranded on the register screen.
+        verifyEmailRoute: (context) => const VerifyEmailView(),
       },
     )
   );
