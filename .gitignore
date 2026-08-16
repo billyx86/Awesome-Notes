@@ -44,7 +44,11 @@ app.*.map.json
 /android/app/release
 
 # Firebase config
-/lib/firebase_options.dart
+# lib/firebase_options.dart is kept in git as a clearly-marked PLACEHOLDER
+# (fake values) so the project compiles on a fresh clone. If you generate
+# real options with `flutterfire configure` and do not want to commit them,
+# re-add the following line and `git rm --cached lib/firebase_options.dart`:
+# /lib/firebase_options.dart
 /android/app/google-services.json
 /ios/firebase_app_id_file.json
 /ios/Runner/GoogleService-Info.plist
