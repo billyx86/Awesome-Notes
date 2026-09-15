@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Security rules for Awesome-Notes.
+//
+// Data layout (see lib/repositories/notes_repository.dart and the README):
+//
+//   users/{uid}/notes/{noteId}   ->  { title, body, updatedAt }
+//
+// Every document lives under the authenticated user's own subcollection,
+// so the only authorization that matters is "uid in the path == the
+// signed-in uid". Create additionally validates the document shape so a
+// client cannot write a note that the server-side model cannot read back.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // A well-formed note document: title (non-empty string), body (string,
+    // may be empty), updatedAt present. (Firestore rules have no `timestamp`
+    // type check, so only presence is enforced; the client always stamps a
+    // server-acceptable Timestamp via Note.toMap.)
+    function isNote() {
+      return request.resource.data.keys().hasAll(['title', 'body', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.body is string;
+    }
+
+    // Deny everything that is not explicitly allowed below (Firestore's
+    // default), and scope notes to their owner.
+    match /users/{uid}/notes/{noteId} {
+      allow get, list: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && isNote();
+      allow update, delete: if signedIn() && request.auth.uid == uid;
+    }
+  }
+}

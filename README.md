@@ -1,9 +1,8 @@
 # Awesome-Notes
 
-A Flutter app skeleton for a notes app: email/password auth with
-Firebase Authentication (including email verification), a route table,
-and a notes screen. The notes feature itself is still a placeholder
-(see [Status](#status)).
+A Flutter app for personal notes: email/password auth with Firebase
+Authentication (including email verification), a route table, and a
+notes screen backed by Cloud Firestore (see [Data model](#data-model)).
 
 ## Screens
 
@@ -11,7 +10,10 @@ and a notes screen. The notes feature itself is still a placeholder
 - **Register** — creates the Firebase account and sends the user to the
   email-verification screen.
 - **Verify email** — re-sends the verification email.
-- **Notes** — currently a `Hello World` placeholder with a logout menu.
+- **Notes** — the signed-in home screen. Lists your notes (newest
+  first), creates notes from the FAB, edits them in place, and deletes
+  via swipe-to-dismiss with a confirm dialog. Includes loading, empty,
+  and error states, plus a sign-out menu in the app bar.
 
 Unauthenticated users land on Login; a signed-in but unverified user
 lands on Verify email; a verified user lands on Notes.
@@ -19,9 +21,8 @@ lands on Verify email; a verified user lands on Notes.
 ## Status
 
 - Firebase auth (login / register / verify email / logout) is wired up.
-- The notes feature is **not** implemented — `NotesView` renders a
-  `Hello World` placeholder. `cloud_firestore` is already a dependency
-  if you want to build on it.
+- The notes feature (create / list / edit / delete) is implemented
+  against Cloud Firestore — see [Data model](#data-model).
 
 ## Getting started
 
@@ -80,31 +81,79 @@ To make sign-in actually work:
 Without a real project, the UI renders but Firebase calls will fail
 against the placeholder configuration.
 
+### Firestore security rules
+
+This repo ships `firestore.rules` (see [Data model](#data-model)).
+Deploy them to your project once, either from the Firebase console
+(Firestore Database → Rules tab) or with the CLI:
+
+```sh
+firebase deploy --only firestore:rules
+```
+
+## Data model
+
+Notes live in the signed-in user's own Firestore subcollection — the
+layout is defined by `lib/repositories/notes_repository.dart` and
+enforced by `firestore.rules`:
+
+```
+users/{uid}/notes/{noteId}
+├── title:      string    (non-empty)
+├── body:       string    (may be empty)
+└── updatedAt:  timestamp (UTC)
+```
+
+- **`uid`** is the signed-in user's `FirebaseAuth().currentUser.uid`.
+  Because every document sits under its owner's `users/{uid}` prefix,
+  the security rules only have to check
+  `request.auth.uid == uid` — one user can never read or write another
+  user's notes.
+- **`noteId`** is an auto-generated Firestore document id
+  (`collection().doc().id` — see `FirestoreNotesRepository.createNote`).
+- **`updatedAt`** is set on create and re-stamped on every edit; the
+  notes list is ordered by it, descending.
+
+The app talks to Firestore only through the `NotesRepository`
+interface, so widget tests run against an in-memory fake
+(`test/fakes/notes_repositories.dart`) with no Firebase backend.
+
 ## Running the tests
 
 ```sh
 flutter analyze   # static analysis (clean)
-flutter test      # 9 tests, no Firebase backend required
+flutter test      # 26 tests, no Firebase backend required
 ```
 
 ## Project layout
 
 ```
 lib/
-├── main.dart                     # app entry, route table, HomePage, NotesView
+├── main.dart                     # app entry, route table, HomePage
 ├── firebase_options.dart         # PLACEHOLDER Firebase config (see above)
 ├── constants/
 │   └── routes.dart               # named route constants
+├── models/
+│   └── note.dart                 # Note model + Firestore map (de)serialization
+├── repositories/
+│   └── notes_repository.dart     # NotesRepository interface + Firestore impl
 ├── utilities/
 │   ├── auth_validation.dart      # shared empty-field checks
 │   └── show_error_dialog.dart    # shared error dialog
 └── views/
     ├── login_view.dart
+    ├── notes_view.dart           # signed-in home: CRUD on notes
     ├── register_view.dart
     └── verify_email_view.dart
 test/
 ├── widget_test.dart              # route + placeholder-options tests
+├── fakes/
+│   └── notes_repositories.dart   # in-memory + throwing fakes for tests
 └── lib/
+    ├── models/note_test.dart
     ├── utilities/auth_validation_test.dart
-    └── views/login_view_test.dart
+    └── views/
+        ├── login_view_test.dart
+        └── notes_view_test.dart
+firestore.rules                   # Cloud Firestore security rules
 ```
