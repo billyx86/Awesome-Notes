@@ -1,5 +1,6 @@
 import 'package:awesomenotes/constants/routes.dart';
 import 'package:awesomenotes/views/login_view.dart';
+import 'package:awesomenotes/views/notes_view.dart';
 import 'package:awesomenotes/views/register_view.dart';
 import 'package:awesomenotes/views/verify_email_view.dart';
 import 'package:awesomenotes/firebase_options.dart';
@@ -27,7 +28,7 @@ Future<void> main() async {
       routes: {
         loginRoute: (context) => const LoginView(),
         registerRoute: (context) => const RegisterView(),
-        notesRoute: (context) => const NotesView(),
+        notesRoute: (context) => NotesView(),
         // VerifyEmailView was reachable only via HomePage; the register
         // flow had no named route to send a freshly-created (unverified)
         // user to, so they were left stranded on the register screen.
@@ -54,58 +55,7 @@ class HomePage extends StatelessWidget {
     if (user == null) {
       return const LoginView();
     }
-    return user.emailVerified ? const NotesView() : const VerifyEmailView();
-  }
-}
-
-class NotesView extends StatefulWidget {
-  const NotesView({super.key});
-
-  @override
-  State<NotesView> createState() => _NotesViewState();
-}
-
-class _NotesViewState extends State<NotesView> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notes'),
-        actions: [
-          PopupMenuButton<MenuAction>(
-            onSelected: (value) async {
-              switch (value) {
-                case MenuAction.logout:
-                  final shouldLogout = await showLogoutDialog(context);
-                  if (shouldLogout) {
-                    await FirebaseAuth.instance.signOut();
-                    if (!mounted) return;
-                    // The user is signed out; send them straight to login,
-                    // discarding the whole stack so the back button can't
-                    // re-enter the app.
-                    //
-                    // Uses the loginRoute constant instead of the literal
-                    // '/login/' so the string lives in one place.
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      loginRoute,
-                      (_) => false,
-                    );
-                  }
-              }
-            }, 
-            itemBuilder: (context) {
-              return const [
-                PopupMenuItem<MenuAction>(
-                value: MenuAction.logout, 
-                child: Text('Log out'),
-                ),
-              ];
-            },
-          )
-        ],
-      ),
-      body: const Text('Hello World'),
-    );
+    return user.emailVerified ? NotesView() : const VerifyEmailView();
   }
 }
 
@@ -113,7 +63,7 @@ enum MenuAction { logout }
 
 Future<bool> showLogoutDialog(BuildContext context) {
   return showDialog<bool>(
-    context: context, 
+    context: context,
     builder: (context) {
       return AlertDialog(
         title: const Text('Log out'),
@@ -122,13 +72,13 @@ Future<bool> showLogoutDialog(BuildContext context) {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(false);
-            }, 
+            },
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(true);
-            }, 
+            },
             child: const Text('Log out'),
           ),
         ],
