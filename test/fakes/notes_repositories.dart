@@ -5,8 +5,14 @@ import 'package:awesomenotes/repositories/notes_repository.dart';
 
 /// A synchronous, in-memory [NotesRepository] for widget tests.
 ///
-/// Stream controllers are sync, so a `pumpAndSettle` after a mutation sees
-/// the updated list without any timers.
+/// Emits each snapshot in a microtask — like real Firestore, whose first
+/// snapshot always arrives on a later event. A synchronous first emission
+/// (added during build, before StreamBuilder has subscribed) is lost, so
+/// the view would sit on its spinner forever.
+///
+/// The stream is broadcast because StreamBuilder re-subscribes on rebuild,
+/// which a single-subscription stream rejects ("Stream has already been
+/// listened to").
 class InMemoryNotesRepository implements NotesRepository {
   final Map<String, StreamController<List<Note>>> _streams = {};
   final Map<String, List<Note>> _notes = {};
@@ -20,7 +26,9 @@ class InMemoryNotesRepository implements NotesRepository {
   }
 
   void _emit(String uid) {
-    _streams[uid]?.add(_sorted(uid));
+    final controller = _streams[uid];
+    if (controller == null) return; // no one listening yet
+    controller.add(_sorted(uid));
   }
 
   /// Seed notes for a uid without going through [createNote], so tests can
@@ -37,9 +45,13 @@ class InMemoryNotesRepository implements NotesRepository {
   Stream<List<Note>> watchNotes(String uid) {
     final controller = _streams.putIfAbsent(
       uid,
-      () => StreamController<List<Note>>(sync: true),
+      () => StreamController<List<Note>>.broadcast(sync: true),
     );
-    controller.onListen = () => controller.add(_sorted(uid));
+    // A fresh listener (StreamBuilder (re)subscribing) sees the current
+    // notes — but not until after build, like a real snapshot.
+    controller.onListen = () {
+      Future.microtask(() => controller.add(_sorted(uid)));
+    };
     return controller.stream;
   }
 
@@ -66,8 +78,9 @@ class InMemoryNotesRepository implements NotesRepository {
   }) async {
     final now = DateTime.now().toUtc();
     _notes[uid] = _all(uid)
-        .map((n) =>
-            n.id == noteId ? n.copyWith(title: title, body: body, updatedAt: now) : n)
+        .map((n) => n.id == noteId
+            ? n.copyWith(title: title, body: body, updatedAt: now)
+            : n)
         .toList();
     _emit(uid);
   }
